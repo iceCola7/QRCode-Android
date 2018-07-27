@@ -1,1 +1,1 @@
-include ':app', ':zarlibrary'
+include ':app', ':zarlibrary', ':codecore'
