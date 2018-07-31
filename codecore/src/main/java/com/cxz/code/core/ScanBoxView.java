@@ -554,9 +554,9 @@ public class ScanBoxView extends View {
             mGridScanLineBottom = mScanLineTop = mFramingRect.top + mHalfCornerSize + 0.5f;
         }
 
-//        if (mQRCodeView != null && isOnlyDecodeScanBoxArea()) {
-//            mQRCodeView.onScanBoxRectChanged(new Rect(mFramingRect));
-//        }
+        if (mQRCodeView != null && isOnlyDecodeScanBoxArea()) {
+            mQRCodeView.onScanBoxRectChanged(new Rect(mFramingRect));
+        }
     }
 
     public Rect getScanBoxAreaRect(int previewHeight) {
