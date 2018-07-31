@@ -54,6 +54,14 @@ public class CodeUtil {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, spValue, context.getResources().getDisplayMetrics());
     }
 
+    /**
+     * 是否为竖屏
+     */
+    public static boolean isPortrait(Context context) {
+        Point screenResolution = getScreenResolution(context);
+        return screenResolution.y > screenResolution.x;
+    }
+
     public static Bitmap adjustPhotoRotation(Bitmap inputBitmap, int orientationDegree) {
         if (inputBitmap == null) {
             return null;
