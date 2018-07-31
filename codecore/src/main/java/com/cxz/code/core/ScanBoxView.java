@@ -79,7 +79,7 @@ public class ScanBoxView extends View {
     private boolean mIsOnlyDecodeScanBoxArea;
     private boolean mIsShowLocationPoint;
 
-    // private QRCodeView mQRCodeView;
+    private QRCodeView mQRCodeView;
 
     public ScanBoxView(Context context) {
         this(context, null);
@@ -92,7 +92,7 @@ public class ScanBoxView extends View {
     public ScanBoxView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         initDefault(context);
-        init(attrs);
+        // init(null, attrs);
     }
 
     public void initDefault(Context context) {
@@ -139,9 +139,9 @@ public class ScanBoxView extends View {
         mIsShowLocationPoint = false;
     }
 
-    public void init(AttributeSet attrs) {
+    public void init(QRCodeView qrCodeView, AttributeSet attrs) {
 
-        // mQRCodeView = qrCodeView;
+        mQRCodeView = qrCodeView;
 
         TypedArray typedArray = getContext().obtainStyledAttributes(attrs, R.styleable.QRCodeView);
         final int count = typedArray.getIndexCount();

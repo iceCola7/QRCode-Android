@@ -10,6 +10,7 @@ import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.Display;
 import android.view.WindowManager;
@@ -18,6 +19,28 @@ import android.view.WindowManager;
  * Created by chenxz on 2018/7/28.
  */
 public class CodeUtil {
+
+    private static boolean debug;
+
+    public static void setDebug(boolean debug) {
+        CodeUtil.debug = debug;
+    }
+
+    public static boolean isDebug() {
+        return debug;
+    }
+
+    public static void d(String msg) {
+        if (debug) {
+            Log.d("BGAQRCode", msg);
+        }
+    }
+
+    public static void e(String msg) {
+        if (debug) {
+            Log.e("BGAQRCode", msg);
+        }
+    }
 
     public static Point getScreenResolution(Context context) {
         WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
