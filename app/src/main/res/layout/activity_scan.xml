@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ScanActivity">
+
+    <com.cxz.zarlibrary.ZbarView
+        android:id="@+id/zbarView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:qr_animTime="1000"
+        app:qr_barCodeTipText="将条码放入框内，即可自动扫描"
+        app:qr_barcodeRectHeight="120dp"
+        app:qr_borderColor="@android:color/white"
+        app:qr_borderSize="1dp"
+        app:qr_cornerColor="@color/colorPrimaryDark"
+        app:qr_cornerLength="20dp"
+        app:qr_cornerSize="3dp"
+        app:qr_isBarcode="false"
+        app:qr_isOnlyDecodeScanBoxArea="false"
+        app:qr_isShowDefaultGridScanLineDrawable="true"
+        app:qr_isShowDefaultScanLineDrawable="true"
+        app:qr_isShowLocationPoint="false"
+        app:qr_isShowTipBackground="true"
+        app:qr_isShowTipTextAsSingleLine="false"
+        app:qr_isTipTextBelowRect="false"
+        app:qr_maskColor="#33FFFFFF"
+        app:qr_qrCodeTipText="将二维码/条码放入框内，即可自动扫描"
+        app:qr_rectWidth="200dp"
+        app:qr_scanLineColor="@color/colorPrimaryDark"
+        app:qr_toolbarHeight="56dp"
+        app:qr_topOffset="80dp"
+        app:qr_verticalBias="-1" />
+
+</RelativeLayout>
