@@ -6,6 +6,21 @@
     android:layout_height="match_parent"
     tools:context=".ScanActivity">
 
+    <Button
+        android:id="@+id/btn_scan_qrcode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="扫描二维码"
+        android:textColor="#FFFFFF" />
+
+    <Button
+        android:id="@+id/btn_scan_barcode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:text="扫描条形码"
+        android:textColor="#FFFFFF" />
+
     <com.cxz.zarlibrary.ZbarView
         android:id="@+id/zbarView"
         android:layout_width="match_parent"
