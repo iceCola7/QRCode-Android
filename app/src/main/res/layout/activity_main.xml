@@ -9,6 +9,6 @@
         android:id="@+id/button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Button" />
+        android:text="跳转扫描界面" />
 
 </RelativeLayout>

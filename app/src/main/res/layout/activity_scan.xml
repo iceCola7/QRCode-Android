@@ -10,6 +10,7 @@
         android:id="@+id/btn_scan_qrcode"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:background="@null"
         android:text="扫描二维码"
         android:textColor="#FFFFFF" />
 
@@ -18,6 +19,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentRight="true"
+        android:background="@null"
         android:text="扫描条形码"
         android:textColor="#FFFFFF" />
 
