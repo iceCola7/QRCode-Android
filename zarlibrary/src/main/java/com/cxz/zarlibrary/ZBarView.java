@@ -14,7 +14,6 @@ import net.sourceforge.zbar.Config;
 import net.sourceforge.zbar.Image;
 import net.sourceforge.zbar.ImageScanner;
 import net.sourceforge.zbar.Symbol;
-import net.sourceforge.zbar.SymbolSet;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
@@ -24,7 +23,7 @@ import java.util.List;
 /**
  * Created by chenxz on 2018/7/28.
  */
-public class ZbarView extends QRCodeView {
+public class ZBarView extends QRCodeView {
 
     static {
         System.loadLibrary("iconv");
@@ -33,24 +32,21 @@ public class ZbarView extends QRCodeView {
     private ImageScanner mScanner;
     private List<BarcodeFormat> mFormatList;
 
-    public ZbarView(Context context) {
-        this(context, null);
+    public ZBarView(Context context, AttributeSet attributeSet) {
+        this(context, attributeSet, 0);
     }
 
-    public ZbarView(Context context, AttributeSet attrs) {
-        this(context, attrs, 0);
-    }
-
-    public ZbarView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public ZBarView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        setupReader();
     }
-
 
     @Override
     protected void setupReader() {
         mScanner = new ImageScanner();
         mScanner.setConfig(0, Config.X_DENSITY, 3);
         mScanner.setConfig(0, Config.Y_DENSITY, 3);
+
         mScanner.setConfig(Symbol.NONE, Config.ENABLE, 0);
 
         for (BarcodeFormat format : getFormats()) {
@@ -103,9 +99,51 @@ public class ZbarView extends QRCodeView {
                 && scanBoxAreaRect.top + scanBoxAreaRect.height() <= height) {
             barcode.setCrop(scanBoxAreaRect.left, scanBoxAreaRect.top, scanBoxAreaRect.width(), scanBoxAreaRect.height());
         }
+
         barcode.setData(data);
         String result = processData(barcode);
         return new ScanResult(result);
+    }
+
+    private String processData(Image barcode) {
+        if (mScanner.scanImage(barcode) == 0) {
+            return null;
+        }
+
+        for (Symbol symbol : mScanner.getResults()) {
+            // 未能识别的格式继续遍历
+            if (symbol.getType() == Symbol.NONE) {
+                continue;
+            }
+
+            String symData;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                symData = new String(symbol.getDataBytes(), StandardCharsets.UTF_8);
+            } else {
+                symData = symbol.getData();
+            }
+            // 空数据继续遍历
+            if (TextUtils.isEmpty(symData)) {
+                continue;
+            }
+
+            // 处理自动缩放和定位点
+            boolean isNeedAutoZoom = isNeedAutoZoom(symbol);
+            if (isShowLocationPoint() || isNeedAutoZoom) {
+                if (transformToViewCoordinates(symbol.getLocationPoints(), null, isNeedAutoZoom, symData)) {
+                    return null;
+                } else {
+                    return symData;
+                }
+            } else {
+                return symData;
+            }
+        }
+        return null;
+    }
+
+    private boolean isNeedAutoZoom(Symbol symbol) {
+        return isAutoZoom() && symbol.getType() == Symbol.QRCODE;
     }
 
     @Override
@@ -123,28 +161,5 @@ public class ZbarView extends QRCodeView {
             e.printStackTrace();
             return null;
         }
-    }
-
-    private String processData(Image barcode) {
-        String result = null;
-        if (mScanner.scanImage(barcode) != 0) {
-            SymbolSet symbolSet = mScanner.getResults();
-            for (Symbol symbol : symbolSet) {
-                String symData;
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
-                    symData = new String(symbol.getDataBytes(), StandardCharsets.UTF_8);
-                } else {
-                    symData = symbol.getData();
-                }
-                if (!TextUtils.isEmpty(symData)) {
-                    if (isShowLocationPoint()) {
-                        transformToViewCoordinates(symbol.getLocationPoints(), null);
-                    }
-                    result = symData;
-                    break;
-                }
-            }
-        }
-        return result;
     }
 }
