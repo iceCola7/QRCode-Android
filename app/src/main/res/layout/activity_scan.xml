@@ -23,7 +23,7 @@
         android:text="扫描条形码"
         android:textColor="#FFFFFF" />
 
-    <com.cxz.zarlibrary.ZbarView
+    <com.cxz.zarlibrary.ZBarView
         android:id="@+id/zbarView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

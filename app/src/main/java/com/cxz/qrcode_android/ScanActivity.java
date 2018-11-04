@@ -3,6 +3,7 @@ package com.cxz.qrcode_android;
 import android.os.Bundle;
 import android.os.Vibrator;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -10,14 +11,15 @@ import android.widget.Toast;
 import com.cxz.code.core.BarcodeType;
 import com.cxz.code.core.QRCodeView;
 import com.cxz.zarlibrary.BarcodeFormat;
-import com.cxz.zarlibrary.ZbarView;
+import com.cxz.zarlibrary.ZBarView;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class ScanActivity extends AppCompatActivity implements QRCodeView.Delegate {
 
-    ZbarView zbarView;
+    private static final String TAG = "ScanActivity";
+    ZBarView zbarView;
     Button btn_scan_qrcode, btn_scan_barcode;
 
     @Override
@@ -85,8 +87,25 @@ public class ScanActivity extends AppCompatActivity implements QRCodeView.Delega
     }
 
     @Override
-    public void onScanQRCodeOpenCameraError() {
+    public void onCameraAmbientBrightnessChanged(boolean isDark) {
+        // 这里是通过修改提示文案来展示环境是否过暗的状态，接入方也可以根据 isDark 的值来实现其他交互效果
+        String tipText = zbarView.getScanBoxView().getTipText();
+        String ambientBrightnessTip = "\n环境过暗，请打开闪光灯";
+        if (isDark) {
+            if (!tipText.contains(ambientBrightnessTip)) {
+                zbarView.getScanBoxView().setTipText(tipText + ambientBrightnessTip);
+            }
+        } else {
+            if (tipText.contains(ambientBrightnessTip)) {
+                tipText = tipText.substring(0, tipText.indexOf(ambientBrightnessTip));
+                zbarView.getScanBoxView().setTipText(tipText);
+            }
+        }
+    }
 
+    @Override
+    public void onScanQRCodeOpenCameraError() {
+        Log.e(TAG, "打开相机出错");
     }
 
 }
