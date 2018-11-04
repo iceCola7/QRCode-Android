@@ -10,14 +10,14 @@ import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Display;
+import android.view.MotionEvent;
 import android.view.WindowManager;
 
-/**
- * Created by chenxz on 2018/7/28.
- */
 public class CodeUtil {
 
     private static boolean debug;
@@ -31,8 +31,18 @@ public class CodeUtil {
     }
 
     public static void d(String msg) {
+        d("BGAQRCode", msg);
+    }
+
+    public static void printRect(String prefix, Rect rect) {
+        d("BGAQRCodeFocusArea", prefix + " centerX：" + rect.centerX() + " centerY：" + rect.centerY() + " width：" + rect.width() + " height：" + rect.height()
+                + " rectHalfWidth：" + rect.width() / 2 + " rectHalfHeight：" + rect.height() / 2
+                + " left：" + rect.left + " top：" + rect.top + " right：" + rect.right + " bottom：" + rect.bottom);
+    }
+
+    public static void d(String tag, String msg) {
         if (debug) {
-            Log.d("BGAQRCode", msg);
+            Log.d(tag, msg);
         }
     }
 
@@ -42,7 +52,15 @@ public class CodeUtil {
         }
     }
 
-    public static Point getScreenResolution(Context context) {
+    /**
+     * 是否为竖屏
+     */
+    public static boolean isPortrait(Context context) {
+        Point screenResolution = getScreenResolution(context);
+        return screenResolution.y > screenResolution.x;
+    }
+
+    static Point getScreenResolution(Context context) {
         WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         Display display = wm.getDefaultDisplay();
         Point screenResolution = new Point();
@@ -77,15 +95,7 @@ public class CodeUtil {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, spValue, context.getResources().getDisplayMetrics());
     }
 
-    /**
-     * 是否为竖屏
-     */
-    public static boolean isPortrait(Context context) {
-        Point screenResolution = getScreenResolution(context);
-        return screenResolution.y > screenResolution.x;
-    }
-
-    public static Bitmap adjustPhotoRotation(Bitmap inputBitmap, int orientationDegree) {
+    static Bitmap adjustPhotoRotation(Bitmap inputBitmap, int orientationDegree) {
         if (inputBitmap == null) {
             return null;
         }
@@ -113,7 +123,7 @@ public class CodeUtil {
         return outputBitmap;
     }
 
-    public static Bitmap makeTintBitmap(Bitmap inputBitmap, int tintColor) {
+    static Bitmap makeTintBitmap(Bitmap inputBitmap, int tintColor) {
         if (inputBitmap == null) {
             return null;
         }
@@ -126,6 +136,54 @@ public class CodeUtil {
         return outputBitmap;
     }
 
+    /**
+     * 计算对焦和测光区域
+     *
+     * @param coefficient        比率
+     * @param originFocusCenterX 对焦中心点X
+     * @param originFocusCenterY 对焦中心点Y
+     * @param originFocusWidth   对焦宽度
+     * @param originFocusHeight  对焦高度
+     * @param previewViewWidth   预览宽度
+     * @param previewViewHeight  预览高度
+     */
+    static Rect calculateFocusMeteringArea(float coefficient,
+                                           float originFocusCenterX, float originFocusCenterY,
+                                           int originFocusWidth, int originFocusHeight,
+                                           int previewViewWidth, int previewViewHeight) {
+
+        int halfFocusAreaWidth = (int) (originFocusWidth * coefficient / 2);
+        int halfFocusAreaHeight = (int) (originFocusHeight * coefficient / 2);
+
+        int centerX = (int) (originFocusCenterX / previewViewWidth * 2000 - 1000);
+        int centerY = (int) (originFocusCenterY / previewViewHeight * 2000 - 1000);
+
+        RectF rectF = new RectF(CodeUtil.clamp(centerX - halfFocusAreaWidth, -1000, 1000),
+                CodeUtil.clamp(centerY - halfFocusAreaHeight, -1000, 1000),
+                CodeUtil.clamp(centerX + halfFocusAreaWidth, -1000, 1000),
+                CodeUtil.clamp(centerY + halfFocusAreaHeight, -1000, 1000));
+        return new Rect(Math.round(rectF.left), Math.round(rectF.top),
+                Math.round(rectF.right), Math.round(rectF.bottom));
+    }
+
+    static int clamp(int value, int min, int max) {
+        return Math.min(Math.max(value, min), max);
+    }
+
+    /**
+     * 计算手指间距
+     */
+    static float calculateFingerSpacing(MotionEvent event) {
+        float x = event.getX(0) - event.getX(1);
+        float y = event.getY(0) - event.getY(1);
+        return (float) Math.sqrt(x * x + y * y);
+    }
+
+    /**
+     * 将本地图片文件转换成可解码二维码的 Bitmap。为了避免图片太大，这里对图片进行了压缩。感谢 https://github.com/devilsen 提的 PR
+     *
+     * @param picturePath 本地图片文件路径
+     */
     public static Bitmap getDecodeAbleBitmap(String picturePath) {
         try {
             BitmapFactory.Options options = new BitmapFactory.Options();
@@ -144,5 +202,4 @@ public class CodeUtil {
             return null;
         }
     }
-
 }

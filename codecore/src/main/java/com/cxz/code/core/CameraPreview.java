@@ -2,39 +2,34 @@ package com.cxz.code.core;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Point;
+import android.graphics.Rect;
 import android.hardware.Camera;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import java.util.Collections;
+
 public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
-    /**
-     * 自动对焦成功后，再次对焦的延迟
-     */
-    public static final long DEFAULT_AUTO_FOCUS_SUCCESS_DELAY = 1000L;
-
-    /**
-     * 自动对焦失败后，再次对焦的延迟
-     */
-    public static final long DEFAULT_AUTO_FOCUS_FAILURE_DELAY = 500L;
-
-    private long mAutoFocusSuccessDelay = DEFAULT_AUTO_FOCUS_SUCCESS_DELAY;
-    private long mAutoFocusFailureDelay = DEFAULT_AUTO_FOCUS_FAILURE_DELAY;
     private Camera mCamera;
-    private CameraConfigurationManager mCameraConfigurationManager;
-    private boolean mSurfaceCreated = false;
     private boolean mPreviewing = true;
+    private boolean mSurfaceCreated = false;
+    private boolean mIsTouchFocusing = false;
+    private float mOldDist = 1f;
+    private CameraConfigurationManager mCameraConfigurationManager;
 
     public CameraPreview(Context context) {
         super(context);
     }
 
-    public void setCamera(Camera camera) {
+    void setCamera(Camera camera) {
         mCamera = camera;
         if (mCamera != null) {
             mCameraConfigurationManager = new CameraConfigurationManager(getContext());
             mCameraConfigurationManager.initFromCameraParameters(mCamera);
-            getHolder().addCallback(this);
 
+            getHolder().addCallback(this);
             if (mPreviewing) {
                 requestLayout();
             } else {
@@ -44,13 +39,13 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     }
 
     @Override
-    public void surfaceCreated(SurfaceHolder holder) {
+    public void surfaceCreated(SurfaceHolder surfaceHolder) {
         mSurfaceCreated = true;
     }
 
     @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        if (holder.getSurface() == null) {
+    public void surfaceChanged(SurfaceHolder surfaceHolder, int format, int width, int height) {
+        if (surfaceHolder.getSurface() == null) {
             return;
         }
         stopCameraPreview();
@@ -58,9 +53,18 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     }
 
     @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {
+    public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
         mSurfaceCreated = false;
         stopCameraPreview();
+    }
+
+    public void reactNativeShowCameraPreview() {
+        if (getHolder() == null || getHolder().getSurface() == null) {
+            return;
+        }
+
+        stopCameraPreview();
+        showCameraPreview();
     }
 
     private void showCameraPreview() {
@@ -70,11 +74,13 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                 if (mCamera != null) {
                     try {
                         mPreviewing = true;
-                        mCamera.setPreviewDisplay(getHolder());
+                        SurfaceHolder surfaceHolder = getHolder();
+                        surfaceHolder.setKeepScreenOn(true);
+                        mCamera.setPreviewDisplay(surfaceHolder);
+
                         mCameraConfigurationManager.setDesiredCameraParameters(mCamera);
                         mCamera.startPreview();
-                        mCamera.autoFocus(autoFocusCB);
-
+                        startContinuousAutoFocus();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -83,92 +89,220 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         });
     }
 
-    public void stopCameraPreview() {
+    void stopCameraPreview() {
         if (mCamera != null) {
             try {
-                removeCallbacks(doAutoFocus);
-
                 mPreviewing = false;
                 mCamera.cancelAutoFocus();
                 mCamera.setOneShotPreviewCallback(null);
                 mCamera.stopPreview();
-
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     }
 
-    private Runnable doAutoFocus = new Runnable() {
-        public void run() {
-            if (mCamera != null && mPreviewing && mSurfaceCreated) {
-                try {
-                    mCamera.autoFocus(autoFocusCB);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    };
-
-    Camera.AutoFocusCallback autoFocusCB = new Camera.AutoFocusCallback() {
-        public void onAutoFocus(boolean success, Camera camera) {
-            if (success) {
-                postDelayed(doAutoFocus, getAutoFocusSuccessDelay());
-            } else {
-                postDelayed(doAutoFocus, getAutoFocusFailureDelay());
-            }
-        }
-    };
-
-    private boolean flashLightAvailable() {
-        return mCamera != null && mPreviewing && mSurfaceCreated && getContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH);
-    }
-
-    /**
-     * 自动对焦成功后，再次对焦的延迟
-     */
-    public long getAutoFocusSuccessDelay() {
-        return mAutoFocusSuccessDelay;
-    }
-
-    /**
-     * 自动对焦成功后，再次对焦的延迟
-     */
-    public void setAutoFocusSuccessDelay(long autoFocusSuccessDelay) {
-        mAutoFocusSuccessDelay = autoFocusSuccessDelay;
-    }
-
-    /**
-     * 自动对焦失败后，再次对焦的延迟
-     */
-    public long getAutoFocusFailureDelay() {
-        return mAutoFocusFailureDelay;
-    }
-
-    /**
-     * 自动对焦失败后，再次对焦的延迟
-     */
-    public void setAutoFocusFailureDelay(long autoFocusFailureDelay) {
-        mAutoFocusFailureDelay = autoFocusFailureDelay;
-    }
-
-    /**
-     * 打开闪光灯
-     */
-    public void openFlashlight() {
+    void openFlashlight() {
         if (flashLightAvailable()) {
             mCameraConfigurationManager.openFlashlight(mCamera);
         }
     }
 
-    /**
-     * 关闭闪光灯
-     */
-    public void closeFlashlight() {
+    void closeFlashlight() {
         if (flashLightAvailable()) {
             mCameraConfigurationManager.closeFlashlight(mCamera);
         }
     }
 
+    private boolean flashLightAvailable() {
+        return isPreviewing() && getContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH);
+    }
+
+    void onScanBoxRectChanged(Rect scanRect) {
+        if (mCamera == null || scanRect == null || scanRect.left <= 0 || scanRect.top <= 0) {
+            return;
+        }
+        int centerX = scanRect.centerX();
+        int centerY = scanRect.centerY();
+        int rectHalfWidth = scanRect.width() / 2;
+        int rectHalfHeight = scanRect.height() / 2;
+
+        CodeUtil.printRect("转换前", scanRect);
+
+        if (CodeUtil.isPortrait(getContext())) {
+            int temp = centerX;
+            centerX = centerY;
+            centerY = temp;
+
+            temp = rectHalfWidth;
+            rectHalfWidth = rectHalfHeight;
+            rectHalfHeight = temp;
+        }
+        scanRect = new Rect(centerX - rectHalfWidth, centerY - rectHalfHeight, centerX + rectHalfWidth, centerY + rectHalfHeight);
+        CodeUtil.printRect("转换后", scanRect);
+
+        CodeUtil.d("扫码框发生变化触发对焦测光");
+        handleFocusMetering(scanRect.centerX(), scanRect.centerY(), scanRect.width(), scanRect.height());
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (!isPreviewing()) {
+            return super.onTouchEvent(event);
+        }
+
+        if (event.getPointerCount() == 1 && (event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP) {
+            if (mIsTouchFocusing) {
+                return true;
+            }
+            mIsTouchFocusing = true;
+            CodeUtil.d("手指触摸触发对焦测光");
+            float centerX = event.getX();
+            float centerY = event.getY();
+            if (CodeUtil.isPortrait(getContext())) {
+                float temp = centerX;
+                centerX = centerY;
+                centerY = temp;
+            }
+            int focusSize = CodeUtil.dp2px(getContext(), 120);
+            handleFocusMetering(centerX, centerY, focusSize, focusSize);
+        }
+
+        if (event.getPointerCount() == 2) {
+            switch (event.getAction() & MotionEvent.ACTION_MASK) {
+                case MotionEvent.ACTION_POINTER_DOWN:
+                    mOldDist = CodeUtil.calculateFingerSpacing(event);
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    float newDist = CodeUtil.calculateFingerSpacing(event);
+                    if (newDist > mOldDist) {
+                        handleZoom(true, mCamera);
+                    } else if (newDist < mOldDist) {
+                        handleZoom(false, mCamera);
+                    }
+                    break;
+            }
+        }
+        return true;
+    }
+
+    private static void handleZoom(boolean isZoomIn, Camera camera) {
+        Camera.Parameters params = camera.getParameters();
+        if (params.isZoomSupported()) {
+            int zoom = params.getZoom();
+            if (isZoomIn && zoom < params.getMaxZoom()) {
+                CodeUtil.d("放大");
+                zoom++;
+            } else if (!isZoomIn && zoom > 0) {
+                CodeUtil.d("缩小");
+                zoom--;
+            } else {
+                CodeUtil.d("既不放大也不缩小");
+            }
+            params.setZoom(zoom);
+            camera.setParameters(params);
+        } else {
+            CodeUtil.d("不支持缩放");
+        }
+    }
+
+    private void handleFocusMetering(float originFocusCenterX, float originFocusCenterY,
+                                     int originFocusWidth, int originFocusHeight) {
+        try {
+            boolean isNeedUpdate = false;
+            Camera.Parameters focusMeteringParameters = mCamera.getParameters();
+            Camera.Size size = focusMeteringParameters.getPreviewSize();
+            if (focusMeteringParameters.getMaxNumFocusAreas() > 0) {
+                CodeUtil.d("支持设置对焦区域");
+                isNeedUpdate = true;
+                Rect focusRect = CodeUtil.calculateFocusMeteringArea(1f,
+                        originFocusCenterX, originFocusCenterY,
+                        originFocusWidth, originFocusHeight,
+                        size.width, size.height);
+                CodeUtil.printRect("对焦区域", focusRect);
+                focusMeteringParameters.setFocusAreas(Collections.singletonList(new Camera.Area(focusRect, 1000)));
+                focusMeteringParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_MACRO);
+            } else {
+                CodeUtil.d("不支持设置对焦区域");
+            }
+
+            if (focusMeteringParameters.getMaxNumMeteringAreas() > 0) {
+                CodeUtil.d("支持设置测光区域");
+                isNeedUpdate = true;
+                Rect meteringRect = CodeUtil.calculateFocusMeteringArea(1.5f,
+                        originFocusCenterX, originFocusCenterY,
+                        originFocusWidth, originFocusHeight,
+                        size.width, size.height);
+                CodeUtil.printRect("测光区域", meteringRect);
+                focusMeteringParameters.setMeteringAreas(Collections.singletonList(new Camera.Area(meteringRect, 1000)));
+            } else {
+                CodeUtil.d("不支持设置测光区域");
+            }
+
+            if (isNeedUpdate) {
+                mCamera.cancelAutoFocus();
+                mCamera.setParameters(focusMeteringParameters);
+                mCamera.autoFocus(new Camera.AutoFocusCallback() {
+                    public void onAutoFocus(boolean success, Camera camera) {
+                        if (success) {
+                            CodeUtil.d("对焦测光成功");
+                        } else {
+                            CodeUtil.e("对焦测光失败");
+                        }
+                        startContinuousAutoFocus();
+                    }
+                });
+            } else {
+                mIsTouchFocusing = false;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            CodeUtil.e("对焦测光失败：" + e.getMessage());
+            startContinuousAutoFocus();
+        }
+    }
+
+    /**
+     * 连续对焦
+     */
+    private void startContinuousAutoFocus() {
+        mIsTouchFocusing = false;
+        if (mCamera == null) {
+            return;
+        }
+        try {
+            Camera.Parameters parameters = mCamera.getParameters();
+            // 连续对焦
+            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+            mCamera.setParameters(parameters);
+            // 要实现连续的自动对焦，这一句必须加上
+            mCamera.cancelAutoFocus();
+        } catch (Exception e) {
+            CodeUtil.e("连续对焦失败");
+        }
+    }
+
+    boolean isPreviewing() {
+        return mCamera != null && mPreviewing && mSurfaceCreated;
+    }
+
+    @Override
+    public void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int width = getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec);
+        int height = getDefaultSize(getSuggestedMinimumHeight(), heightMeasureSpec);
+        if (mCameraConfigurationManager != null && mCameraConfigurationManager.getCameraResolution() != null) {
+            Point cameraResolution = mCameraConfigurationManager.getCameraResolution();
+            // 取出来的cameraResolution高宽值与屏幕的高宽顺序是相反的
+            int cameraPreviewWidth = cameraResolution.x;
+            int cameraPreviewHeight = cameraResolution.y;
+            if (width * 1f / height < cameraPreviewWidth * 1f / cameraPreviewHeight) {
+                float ratio = cameraPreviewHeight * 1f / cameraPreviewWidth;
+                width = (int) (height / ratio + 0.5f);
+            } else {
+                float ratio = cameraPreviewWidth * 1f / cameraPreviewHeight;
+                height = (int) (width / ratio + 0.5f);
+            }
+        }
+        super.onMeasure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
+    }
 }

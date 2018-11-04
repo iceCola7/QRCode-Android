@@ -70,5 +70,7 @@
         <attr name="qr_isOnlyDecodeScanBoxArea" format="boolean" />
         <!-- 是否显示定位点，默认值为false -->
         <attr name="qr_isShowLocationPoint" format="boolean" />
+        <!-- 码太小时是否自动缩放，默认值为false -->
+        <attr name="qr_isAutoZoom" format="boolean" />
     </declare-styleable>
 </resources>
